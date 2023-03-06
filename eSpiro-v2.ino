@@ -57,8 +57,6 @@ void setup() {
     Serial.printf("Failed setting pin: %d\n", err);
     while (true);
   }
-
-  pset_LED(p_strip, 255,0,0);
   
   // Calibrate. Obtain the ambient threshold value.
   while ( !ambient_threshold_test.utimer(5000000) ) {
@@ -79,11 +77,15 @@ void setup() {
   pinMode(button_trigger.PIN, INPUT);
   attachInterrupt(button_trigger.PIN, button_ISR, FALLING);
   
-  preset_LED(p_strip);
   // This will be used much more later.
-  Serial.printf("Calibrated - mx: %ld, mn: %ld\r\n", ptr_mic_spirometer->get_max_ambient(), ptr_mic_spirometer->get_min_ambient());
+  Serial.printf("Calibrated - mx: %ld, mn: %ld\n\r", ptr_mic_spirometer->get_max_ambient(), ptr_mic_spirometer->get_min_ambient());
   sample = 0;
-  Serial.printf("Ready.\r\n");
+  
+  pset_LED(p_strip, 255,0,0);  
+  connect_to_wifi();
+  preset_LED(p_strip);
+  Serial.printf("%s\n\r", get_local_time());
+  Serial.printf("Ready.\n\r");
 }
 
 void loop() { 
@@ -92,7 +94,9 @@ void loop() {
     // Sample data.
     (void) i2s_read(I2S_PORT, (char *)&sample, sizeof(int32_t), &bytes_read, xDelay);
     if ( ( sample > ptr_mic_spirometer->get_max_ambient() || sample < ptr_mic_spirometer->get_min_ambient() ) ) {
-      Serial.printf("Measuring.\n\r");    
+      Serial.printf("Measuring.\n\r");
+      // Set to blue during measurement capture.
+      pset_LED(p_strip,0,0,255);
       measure_flag = ptr_mic_spirometer->capture_data(p_strip,&sample);
       attachInterrupt(button_trigger.PIN, button_ISR, FALLING);   // Reattach Interrupt.
     }
@@ -103,11 +107,7 @@ void loop() {
     measure_flag = 1;
     button_trigger.pressed = false;
     button_trigger.pressed_count = 0;
-    Serial.printf("Triggered. Flag: %d\n\r", measure_flag);
-
     // Flash Yellow 3 times. This function should take 3 seconds.
     ptr_mic_spirometer->hold_breath_indicator(p_strip);
-    // Set to blue during measurement capture.
-    pset_LED(p_strip,0,0,255);
   }
 }

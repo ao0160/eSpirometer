@@ -6,6 +6,8 @@
 class spirometer{
   String mac_address;
   volatile uint32_t sample_counter = 0;
+  char time_stamp[26];
+  char* ptr_time_stamp;
   
   double output = 0;
   double energy = 0;
@@ -16,6 +18,7 @@ class spirometer{
    
   public:
     // GETTER and SETTER Functions
+    // --------------------------------------------
     // Ambient threshold functions.
       void set_ambients(int32_t mx, int32_t mn){
         this->max_ambient_energy_threshold = mx;
@@ -34,6 +37,7 @@ class spirometer{
         return this->max_ambient_energy_threshold;
       }
     // Energy Storage functions.
+    // --------------------------------------------
       void set_energy(double e){
         this->energy = e;
       }
@@ -48,7 +52,8 @@ class spirometer{
       }
 
 
-    // Functions
+    // Spirometer Functions
+    // --------------------------------------------
     double calc_energy(double& in){
       return ( in * in );
     }
@@ -75,7 +80,7 @@ class spirometer{
       Serial.printf(" .");
       delay(1000);
       preset_LED(indicator);
-      Serial.printf(" Exhale!\r\n");
+      Serial.printf(" Exhale!\n\r");
     }
     
     void bad_reading_indicator(Freenove_ESP32_WS2812* indicator){
@@ -102,8 +107,8 @@ class spirometer{
       }
       
       // Display once.
-      Serial.printf("FEV1: %lf\r\n", this->FVC_MALE(this->snapshot_one_second));
-      Serial.printf("FVC6: %lf\r\n", this->FVC_MALE(this->energy));
+      Serial.printf("FEV1: %lf\n\r", this->FVC_MALE(this->snapshot_one_second));
+      Serial.printf("FVC6: %lf\n\r", this->FVC_MALE(this->energy));
       // ToDo: Show status of measurement VIA LED.
       
       // Reset LED.
@@ -112,8 +117,12 @@ class spirometer{
       this->output = 0.0;
       this->snapshot_one_second = 0.0;
       this->sample_counter = 0;
+
+      // Send time stamp with the message.
+      this->ptr_time_stamp = (char*) get_local_time();
+      Serial.printf("%s\n\r", this->ptr_time_stamp);
       
-      // Measure Flag is returned.
+      // Measure Flag is returned, this terminates the sampling.
       return 0;      
     }
     
