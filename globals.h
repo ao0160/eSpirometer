@@ -14,16 +14,21 @@
 #include "Freenove_WS2812_Lib_for_ESP32.h"
 #include "credentials.h"
 
+const uint8_t END_READING  =  0;
+const uint8_t START_READING = 1;
+const uint8_t BAD_READING  =  2;
+const uint8_t COUGH_DETECTED = 3;
+
 // LED
-#define LEDS_COUNT  1
-#define LEDS_PIN  18
-#define CHANNEL   0
+const uint8_t LEDS_COUNT = 1;
+const uint8_t LEDS_PIN = 18;
+const uint8_t CHANNEL  = 0;
 // Button
-#define CAPTURE_BUTTON 32
-#define BUTTON_THRESH 1
-#define DEBOUNCE_US 250000
+const uint8_t CAPTURE_BUTTON = 32;
+const uint8_t BUTTON_THRESH = 1;
+const uint16_t DEBOUNCE_US = 250000;
 // I2S definitions
-#define SAMPLE_RATE 44100
+const uint16_t SAMPLE_RATE = 44100;
 TickType_t xDelay = 32;
 size_t bytes_read = 0;
 esp_err_t err;
@@ -131,6 +136,7 @@ void send_message(){
   net.printf("Host: %s\n", server); 
   net.printf("User-Agent: IoT\n");
   net.printf("Content-Type: application/x-www-form-urlencoded\n");
+  // Length will be calculated. 
   net.printf("Content-Length: 15\n\n");
   net.printf("test=helloworld");
   net.printf("\n");
@@ -190,8 +196,7 @@ void connect_to_wifi(){
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   Serial.println(" Connected.");
 
-  send_message();
-  
+  send_message(); 
 }
 
 // https://cplusplus.com/reference/ctime/asctime/

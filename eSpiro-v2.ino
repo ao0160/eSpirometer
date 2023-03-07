@@ -90,7 +90,7 @@ void setup() {
 
 void loop() { 
   // Every 250 microseconds do sampling, or if the measure_flag is true.
-  if (  !general_purpose.utimer(5000) && measure_flag == 1 ) {
+  if (  !general_purpose.utimer(5000) && measure_flag >= START_READING ) {
     // Sample data.
     (void) i2s_read(I2S_PORT, (char *)&sample, sizeof(int32_t), &bytes_read, xDelay);
     if ( ( sample > ptr_mic_spirometer->get_max_ambient() || sample < ptr_mic_spirometer->get_min_ambient() ) ) {
@@ -103,8 +103,8 @@ void loop() {
   }
  
   // Check for button press. If pressed, start measurement.
-  if ( debouncer.utimer(20000) && button_trigger.pressed && button_trigger.pressed_count && measure_flag == 0 ){     
-    measure_flag = 1;
+  if ( debouncer.utimer(20000) && button_trigger.pressed && button_trigger.pressed_count && measure_flag == END_READING ){     
+    measure_flag = START_READING;
     button_trigger.pressed = false;
     button_trigger.pressed_count = 0;
     // Flash Yellow 3 times. This function should take 3 seconds.
