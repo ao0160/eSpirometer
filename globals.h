@@ -1,10 +1,16 @@
-#include <WiFiClientSecure.h>
+#ifdef USE_API
+  #include <WiFi.h>
+#else
+  #include <WiFiClientSecure.h>
+#endif
+
 //#include <MQTTClient.h>
 //#include <ArduinoJson.h>
 #include <math.h>
 #include <limits.h>
 #include <pgmspace.h>
 
+#include "mbedtls/md.h"
 #include "esp_wpa2.h"
 #include "WiFi.h"
 #include "driver/i2s.h"
@@ -13,6 +19,8 @@
 #include "freertos/queue.h"
 #include "Freenove_WS2812_Lib_for_ESP32.h"
 #include "credentials.h"
+
+#define DEBUG true
 
 const uint8_t END_READING  =  0;
 const uint8_t START_READING = 1;
@@ -34,11 +42,20 @@ size_t bytes_read = 0;
 esp_err_t err;
 
 // Networking.
-const char* server = "api.olvera-dev.com";
+const char* server = "api.olvera-dev.com";   // Example utilizing public webserver.
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 3600;
 const int   daylightOffset_sec = 3600;
-WiFiClientSecure net = WiFiClientSecure();
+// Get MAC ADDRESS and SHA256 of MACADDRESS to submit for memo in account creation.
+const char *mac_address = (char*) WiFi.macAddress().c_str();
+byte sha_256_result[32];
+char sha_256_result_string[64];
+
+#ifdef USE_API 
+  WiFiClient net = WiFiClientSecure();
+#else
+  WiFiClientSecure net = WiFiClientSecure();
+#endif
 
 const i2s_port_t I2S_PORT = I2S_NUM_0;
 int32_t sample = 0;
@@ -124,13 +141,78 @@ class timer{
     }
  };
 
+void set_device_info(){
+  mbedtls_md_context_t ctx;
+  mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+  
+  const size_t mac_length = strlen(mac_address);
+  mbedtls_md_init(&ctx);
+  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
+  
+  mbedtls_md_starts(&ctx);
+  mbedtls_md_update(&ctx, (const unsigned char *) mac_address, mac_length);
+  mbedtls_md_finish(&ctx, sha_256_result);
+  mbedtls_md_free(&ctx);
+}
 
+void get_device_info(){
+  int j = 0;
+  
+  for(int i= 0; i< sizeof(sha_256_result); i++){
+    j += sprintf(sha_256_result_string+j, "%02x", (int)sha_256_result[i]);
+  }
+  Serial.printf("Hash: %s\n\r", sha_256_result_string);
+}
+
+
+#ifdef USE_API
+// Basic example posting to my server. Will leave this here for examples sake, but will leave commented out.
+void send_message(){ 
+  if( !net.connect(api_end_point, 9090) ){
+    Serial.printf("Failed to connect.\n\r");
+  }
+  Serial.printf("Connecting to %s\n\r", api_end_point);
+
+  // Make HTTP request.
+  net.printf("POST http://%s/v1/get-account/memo HTTP/1.0\n", api_end_point);
+  net.printf("Host: %s\n", api_end_point); 
+  net.printf("User-Agent: IoT\n");
+  net.printf("Content-Type: application/x-www-form-urlencoded\n");
+  
+  // Length will be calculated. 
+  String message = "accountid=3590940&memo=";   // Definitely don't like doing this.
+  message = message + String("auto-created account");
+  //message = message + String(sha_256_result_string);
+  Serial.printf("Message: %s, Message Length: %d\n\r", message.c_str(), message.length());
+  net.printf("Content-Length: %d\n\n", message.length());
+  net.printf("%s", message.c_str());
+  net.printf("\n");
+  
+  while (net.connected()) {
+    String line = net.readStringUntil('\n');
+    if (line == "\r") {
+      Serial.println("headers received");
+      break;
+    }
+  }
+  
+  // if there are incoming bytes available
+  // from the server, read them and print them:
+  while (net.available()) {
+    char c = net.read();
+    Serial.printf("%c", c);
+  }
+  Serial.println();
+  net.stop();  
+}
+#else
+// Basic example posting to my server. Will leave this here for examples sake, but will leave commented out.
 void send_message(){
   net.setCACert(ODEV_CERT_CA);
   if( !net.connect(server, 443) ){
     Serial.printf("Failed to connect.\n\r");
   }
-
+  Serial.printf("Connecting to %s\n\r", server);
   // Make HTTP request.
   net.printf("POST https://%s/spirometer/check.php?test=hello HTTP/1.0\n", server);
   net.printf("Host: %s\n", server); 
@@ -158,6 +240,7 @@ void send_message(){
   Serial.println();
   net.stop();  
 }
+#endif
 
 // LED Status Functions
 // --------------------------------------------
@@ -180,9 +263,46 @@ void (*pset_LED)(Freenove_ESP32_WS2812*, int, int, int) = &set_LED;
 void connect_to_wifi(){
   timer wifi_timer;
   uint8_t counter = 0;
+  uint16_t networks = 0;
+
+  WiFi.mode(WIFI_STA);
+  networks = WiFi.scanNetworks();
+  if (networks == 0) {
+    Serial.println("No reachable networks found.\n\r");
+  } 
+  else {
+    Serial.printf("%d reachable networks found.\n\r", networks);
+    for (int i = 0; i < networks; ++i) {
+        if( WiFi.SSID(i) == ssid ){
+          HOME_NET = 1;
+        }
+        else if( WiFi.SSID(i) == school_ssid ){
+          SCHOOL_NET = 1;
+        }
+    }
+  }
+  Serial.println("");
+  // Delete the scan result to free memory for code below.
+  WiFi.scanDelete();
+  
   //connect to WiFi
-  Serial.printf("Connecting to %s", ssid);
-  WiFi.begin(ssid, wifi_password);
+  if ( HOME_NET ){
+    WiFi.disconnect(true);
+    Serial.printf("Connecting to %s", ssid);
+    WiFi.begin(ssid, wifi_password);
+  }
+  else if ( SCHOOL_NET ){
+    WiFi.disconnect(true);
+    Serial.printf("Connecting to %s", school_ssid);
+    esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
+    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY)); //provide identity
+    esp_wifi_sta_wpa2_ent_set_username((uint8_t *)EAP_USERNAME, strlen(EAP_USERNAME)); //provide username
+    esp_wifi_sta_wpa2_ent_set_password((uint8_t *)EAP_PASSWORD, strlen(EAP_PASSWORD)); //provide password
+    esp_wifi_sta_wpa2_ent_enable(&config);  
+    
+    WiFi.begin(school_ssid);
+  }
+  
   while( WiFi.status() != WL_CONNECTED ) {
       if( counter >= 30 ){
         Serial.printf("Taking too long. Likely connection will fail. Restarting.\n\r");

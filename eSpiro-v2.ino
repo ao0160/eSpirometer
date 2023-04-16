@@ -82,7 +82,12 @@ void setup() {
   sample = 0;
   
   pset_LED(p_strip, 255,0,0);  
-  connect_to_wifi();
+  set_device_info();
+  get_device_info();
+    
+  connect_to_wifi(); 
+  send_message();
+   
   preset_LED(p_strip);
   Serial.printf("%s\n\r", get_local_time());
   Serial.printf("Ready.\n\r");

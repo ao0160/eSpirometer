@@ -1,7 +1,8 @@
 const float H = 67.0;
 const float A = 26.0;
 const float MILLI = 1000.00;
-const uint8_t VOLUME = 1;
+//const uint8_t VOLUME = 10;
+const float VOLUME = 0.1573463;    // Using 300 ML syringe, average of 
 
 const uint8_t NUM_SAMPLES = 4;
 const uint8_t SAMPLING_SECONDS = 6;
@@ -21,7 +22,7 @@ const float MAX_THRESH_FVC_SCALAR =  1.5;
 const float MAX_THRESH_PEFR_SCALAR = 1.70;
 
 class spirometer{
-  String mac_address;
+  String device_identifier;
   volatile uint32_t sample_counter = 0;
   char time_stamp[26];
   char* ptr_time_stamp;
@@ -40,7 +41,7 @@ class spirometer{
   double FEV = 0.0;
   double PEFR = 0.0;
   double inst_volume[INSTANT_VOLUME_ENTRIES];  // 4 samples per second.
-  double window_samples[PEAK_WINDOW];  
+  double window_samples[PEAK_WINDOW];
 
  bool peak_detection(double current, double previous, double next ){
     // If Left side is larger or right side is larger, this is not a peak.
@@ -83,6 +84,10 @@ class spirometer{
     // GETTER and SETTER Functions
     // --------------------------------------------
     // Ambient threshold functions.
+      void set_device_info(){
+        
+      }
+    
       void set_ambients(int32_t mx, int32_t mn){
         this->max_ambient_energy_threshold = mx;
         this->max_ambient_energy_threshold = mn;
@@ -308,6 +313,11 @@ class spirometer{
       // Reset LED.
       preset_LED(indicator);
 
+      #ifdef DEBUG
+        // Jump directly to return, do not check validity of data.
+        return END_READING;
+      #endif
+      
       // Determine if there was a COUGH.
       if ( this->cough_detection() ){
         this->bad_reading_indicator(indicator, COUGH_DETECTED);
@@ -324,6 +334,7 @@ class spirometer{
       // Send time stamp with the message.
       //this->ptr_time_stamp = (char*) get_local_time();
       //Serial.printf("%s\n\r", this->ptr_time_stamp);
+
       
       // Measure Flag is returned, this terminates the sampling.
       return END_READING;         
