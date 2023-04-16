@@ -2,7 +2,7 @@
 A microphone based spirometer utilizing an INMP441I2S MEMs microphone, WS2812 indicator LED, and an ESP32 Wroom development board.
 
 ## Motivation
-Version 1, not included in this git, was originally created for my masters thesis. I am currently updating it to be more efficient, as well as hook to my personal website due to wanting to utlize my website as an access point for additional functionality. 
+Version 1, not included in this git, was originally created for my masters thesis. I am currently updating it to be more efficient, as well as hook to my personal website due to wanting to utilize my website as an access point for additional functionality. 
 
 
 ### References
