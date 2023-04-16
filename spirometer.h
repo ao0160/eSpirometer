@@ -22,7 +22,7 @@ const float MAX_THRESH_FVC_SCALAR =  1.5;
 const float MAX_THRESH_PEFR_SCALAR = 1.70;
 
 class spirometer{
-  String device_identifier;
+  char* device_identifier;
   volatile uint32_t sample_counter = 0;
   char time_stamp[26];
   char* ptr_time_stamp;
@@ -42,6 +42,8 @@ class spirometer{
   double PEFR = 0.0;
   double inst_volume[INSTANT_VOLUME_ENTRIES];  // 4 samples per second.
   double window_samples[PEAK_WINDOW];
+
+
 
  bool peak_detection(double current, double previous, double next ){
     // If Left side is larger or right side is larger, this is not a peak.
@@ -67,6 +69,16 @@ class spirometer{
 
    
   public:
+    // Constructor.
+    spirometer(){
+    }
+    
+    spirometer(char* device, char sx){
+      this->device_identifier = device;
+      this->sex = sx;
+    }
+
+  
     void reset_spirometer_calculations(){
       this->sample_counter = 0;    
       this->window_counter = 0;

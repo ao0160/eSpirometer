@@ -164,10 +164,8 @@ void get_device_info(){
   Serial.printf("Hash: %s\n\r", sha_256_result_string);
 }
 
-
 #ifdef USE_API
-// Basic example posting to my server. Will leave this here for examples sake, but will leave commented out.
-void send_message(){ 
+void send_api_message(){ 
   if( !net.connect(api_end_point, 9090) ){
     Serial.printf("Failed to connect.\n\r");
   }
@@ -181,8 +179,49 @@ void send_message(){
   
   // Length will be calculated. 
   String message = "accountid=3590940&memo=";   // Definitely don't like doing this.
-  message = message + String("auto-created account");
-  //message = message + String(sha_256_result_string);
+  //message = message + String("auto-created account");
+  message = message + String(sha_256_result_string);
+  Serial.printf("Message: %s, Message Length: %d\n\r", message.c_str(), message.length());
+  net.printf("Content-Length: %d\n\n", message.length());
+  net.printf("%s", message.c_str());
+  net.printf("\n");
+  
+  while (net.connected()) {
+    String line = net.readStringUntil('\n');
+    if (line == "\r") {
+      Serial.println("headers received");
+      break;
+    }
+  }
+  
+  // if there are incoming bytes available
+  // from the server, read them and print them:
+  while (net.available()) {
+    char c = net.read();
+    Serial.printf("%c", c);
+  }
+  Serial.println();
+  net.stop();  
+}
+
+// Basic example posting to my server. Will leave this here for examples sake, but will leave commented out.
+// This servers as a verification that account exists.
+void send_test_message(){ 
+  if( !net.connect(api_end_point, 9090) ){
+    Serial.printf("Failed to connect.\n\r");
+  }
+  Serial.printf("Connecting to %s\n\r", api_end_point);
+
+  // Make HTTP request.
+  net.printf("POST http://%s/v1/get-account/memo HTTP/1.0\n", api_end_point);
+  net.printf("Host: %s\n", api_end_point); 
+  net.printf("User-Agent: IoT\n");
+  net.printf("Content-Type: application/x-www-form-urlencoded\n");
+  
+  // Length will be calculated. 
+  String message = "accountid=3590940&memo=";   // Definitely don't like doing this.
+  //message = message + String("auto-created account");
+  message = message + String(sha_256_result_string);
   Serial.printf("Message: %s, Message Length: %d\n\r", message.c_str(), message.length());
   net.printf("Content-Length: %d\n\n", message.length());
   net.printf("%s", message.c_str());
@@ -207,7 +246,7 @@ void send_message(){
 }
 #else
 // Basic example posting to my server. Will leave this here for examples sake, but will leave commented out.
-void send_message(){
+void send_test_message(){
   net.setCACert(ODEV_CERT_CA);
   if( !net.connect(server, 443) ){
     Serial.printf("Failed to connect.\n\r");
@@ -314,9 +353,9 @@ void connect_to_wifi(){
   }
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  Serial.println(" Connected.");
+  Serial.printf("Connected to: %s\n\r", WiFi.SSID());
 
-  send_message(); 
+  send_test_message(); 
 }
 
 // https://cplusplus.com/reference/ctime/asctime/

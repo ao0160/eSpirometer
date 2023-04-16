@@ -25,6 +25,10 @@ void setup() {
   p_strip->setBrightness(50);
   preset_LED(p_strip);
 
+  set_device_info();
+  get_device_info();
+  new(&mic_spirometer) spirometer(sha_256_result_string, 'M');
+
   // I2S Configuration. 
   const i2s_config_t i2s_config = {
     .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),  // Receive, not transfer
@@ -81,14 +85,10 @@ void setup() {
   Serial.printf("Calibrated - mx: %ld, mn: %ld\n\r", ptr_mic_spirometer->get_max_ambient(), ptr_mic_spirometer->get_min_ambient());
   sample = 0;
   
-  pset_LED(p_strip, 255,0,0);  
-  set_device_info();
-  get_device_info();
-    
+  pset_LED(p_strip, 255,0,0);   
   connect_to_wifi(); 
-  send_message();
-   
   preset_LED(p_strip);
+  
   Serial.printf("%s\n\r", get_local_time());
   Serial.printf("Ready.\n\r");
 }
