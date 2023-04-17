@@ -7,6 +7,7 @@ timer general_purpose;
 timer FVC_timer;
 timer FEV_timer;
 volatile uint32_t sample_counter = 0;
+String payload;
 
 Button button_trigger = { CAPTURE_BUTTON, 0,  false };
 static spirometer mic_spirometer;
@@ -103,6 +104,14 @@ void loop() {
       // Set to blue during measurement capture.
       pset_LED(p_strip,0,0,255);
       measure_flag = ptr_mic_spirometer->capture_data(p_strip,&sample);
+
+      if ( measure_flag == END_READING ){
+        ptr_mic_spirometer->get_message(&payload);
+        send_device_data(payload);
+        payload.clear();
+        
+      }
+      
       attachInterrupt(button_trigger.PIN, button_ISR, FALLING);   // Reattach Interrupt.
     }
   }

@@ -1,3 +1,6 @@
+// 6.17.3 was used before. Current is 6.21
+#include <ArduinoJson.h>
+
 const float H = 67.0;
 const float A = 26.0;
 const float MILLI = 1000.00;
@@ -43,7 +46,7 @@ class spirometer{
   double inst_volume[INSTANT_VOLUME_ENTRIES];  // 4 samples per second.
   double window_samples[PEAK_WINDOW];
 
-
+  StaticJsonDocument<512> message;
 
  bool peak_detection(double current, double previous, double next ){
     // If Left side is larger or right side is larger, this is not a peak.
@@ -78,7 +81,6 @@ class spirometer{
       this->sex = sx;
     }
 
-  
     void reset_spirometer_calculations(){
       this->sample_counter = 0;    
       this->window_counter = 0;
@@ -96,8 +98,21 @@ class spirometer{
     // GETTER and SETTER Functions
     // --------------------------------------------
     // Ambient threshold functions.
-      void set_device_info(){
-        
+      void set_message(){
+        this->message.clear();
+        this->message["identifier"] = this->device_identifier;
+        this->message["FVC"] = this->FVC;
+        this->message["FEV"] = this->FEV;
+        this->message["PEFR"] = this->PEFR;
+        JsonArray data = this->message.createNestedArray("energy-graph");
+        for( int i = 0; i < INSTANT_VOLUME_ENTRIES; i++ ){
+          data.add(inst_volume[i]);
+        }
+      }
+      
+      size_t get_message(String* output){
+        size_t bytes = serializeJson(this->message, *output);
+        return bytes;
       }
     
       void set_ambients(int32_t mx, int32_t mn){
@@ -320,13 +335,16 @@ class spirometer{
       Serial.printf("FEV1: %lf L\n\r", this->FEV);
       Serial.printf("FVC6: %lf L\n\r", this->FVC);
       Serial.printf("PEFR: %lf L/min\n\r\n\r", this->PEFR);
-      // ToDo: Show status of measurement VIA LED.
-      this->reset_spirometer_calculations();
+
       // Reset LED.
       preset_LED(indicator);
-
-      #ifdef DEBUG
-        // Jump directly to return, do not check validity of data.
+      this->set_message();
+    
+      // Jump directly to return, do not check validity of data.
+      // ToDo: Show status of measurement VIA LED.
+      this->reset_spirometer_calculations();
+      
+      #ifdef DEBUG     
         return END_READING;
       #endif
       

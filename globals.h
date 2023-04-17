@@ -4,12 +4,9 @@
   #include <WiFiClientSecure.h>
 #endif
 
-//#include <MQTTClient.h>
-//#include <ArduinoJson.h>
 #include <math.h>
 #include <limits.h>
 #include <pgmspace.h>
-
 #include "mbedtls/md.h"
 #include "esp_wpa2.h"
 #include "WiFi.h"
@@ -165,22 +162,24 @@ void get_device_info(){
 }
 
 #ifdef USE_API
-void send_api_message(){ 
+void send_device_data(String payload){
   if( !net.connect(api_end_point, 9090) ){
     Serial.printf("Failed to connect.\n\r");
   }
   Serial.printf("Connecting to %s\n\r", api_end_point);
 
   // Make HTTP request.
-  net.printf("POST http://%s/v1/get-account/memo HTTP/1.0\n", api_end_point);
+  net.printf("POST http://%s/v1/send-espirometer-data HTTP/1.0\n", api_end_point);
   net.printf("Host: %s\n", api_end_point); 
   net.printf("User-Agent: IoT\n");
   net.printf("Content-Type: application/x-www-form-urlencoded\n");
   
-  // Length will be calculated. 
-  String message = "accountid=3590940&memo=";   // Definitely don't like doing this.
-  //message = message + String("auto-created account");
-  message = message + String(sha_256_result_string);
+  // Length will be calculated, not a fan of this method since it will constantly allocate memory leading to memory leaks at some point.
+  String message = "fileid=4127209";  // First section. Hardcoded file.
+  //message = message + "&memo=" + String(sha_256_result_string);    // Add HASH.
+  message = message + "&filecontents=" + payload;
+  message = message + "&pubkey=" + String(DER_PUB_KEY) + "&privkey=" + String(DER_PRIV_KEY);
+  
   Serial.printf("Message: %s, Message Length: %d\n\r", message.c_str(), message.length());
   net.printf("Content-Length: %d\n\n", message.length());
   net.printf("%s", message.c_str());
