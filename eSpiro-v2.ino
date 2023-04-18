@@ -103,7 +103,7 @@ void loop() {
       Serial.printf("Measuring.\n\r");
       // Set to blue during measurement capture.
       pset_LED(p_strip,0,0,255);
-      measure_flag = ptr_mic_spirometer->capture_data(p_strip,&sample);
+      measure_flag = ptr_mic_spirometer->capture_data(p_strip,&sample, get_local_time() );
 
       if ( measure_flag == END_READING ){
         ptr_mic_spirometer->get_message(&payload);

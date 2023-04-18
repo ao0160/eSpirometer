@@ -27,8 +27,6 @@ const float MAX_THRESH_PEFR_SCALAR = 1.70;
 class spirometer{
   char* device_identifier;
   volatile uint32_t sample_counter = 0;
-  char time_stamp[26];
-  char* ptr_time_stamp;
   char sex = 'M';
 
   int32_t max_ambient_energy_threshold;
@@ -98,9 +96,10 @@ class spirometer{
     // GETTER and SETTER Functions
     // --------------------------------------------
     // Ambient threshold functions.
-      void set_message(){
+      void set_message(char* timestamp){
         this->message.clear();
         this->message["identifier"] = this->device_identifier;
+        this->message["timestamp"] = timestamp;
         this->message["FVC"] = this->FVC;
         this->message["FEV"] = this->FEV;
         this->message["PEFR"] = this->PEFR;
@@ -305,7 +304,7 @@ class spirometer{
       this->hold_breath_indicator(indicator);
     }
     
-    uint8_t capture_data(Freenove_ESP32_WS2812* indicator, int32_t* sample){
+    uint8_t capture_data(Freenove_ESP32_WS2812* indicator, int32_t* sample, char* timestamp){
       // Lock measurement in for 6 seconds, this is done by checking to see if the number of samples read in is equivalent to the SAMPLE RATE * 6.
       // This should account for 6 seconds. For some reason, using the timer method does not work very well for this. 
       while ( this->sample_counter != (6 * SAMPLE_RATE) ) {
@@ -338,7 +337,7 @@ class spirometer{
 
       // Reset LED.
       preset_LED(indicator);
-      this->set_message();
+      this->set_message(timestamp);
     
       // Jump directly to return, do not check validity of data.
       // ToDo: Show status of measurement VIA LED.
