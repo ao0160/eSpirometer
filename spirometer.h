@@ -5,11 +5,12 @@ const float H = 67.0;
 const float A = 26.0;
 const float MILLI = 1000.00;
 //const uint8_t VOLUME = 10;
-const float VOLUME = 0.1573463;    // Using 300 ML syringe, average of 
+//const float VOLUME = 0.1573463;    // Using 300 ML syringe, average of 
+const float VOLUME = 1;    // Using 300 ML syringe, average of 
 
-const uint8_t NUM_SAMPLES = 4;
-const uint8_t SAMPLING_SECONDS = 6;
-const uint8_t INSTANT_VOLUME_ENTRIES = ((NUM_SAMPLES*SAMPLING_SECONDS)+2);
+const uint16_t NUM_SAMPLES = 4;
+const uint16_t SAMPLING_SECONDS = 6;
+const uint16_t INSTANT_VOLUME_ENTRIES = ((NUM_SAMPLES*SAMPLING_SECONDS)+1);
 
 // COUGH threshold may neeed to be tuned more.
 const uint8_t COUGH_COUNTER_THRESH = 5;
@@ -44,7 +45,7 @@ class spirometer{
   double inst_volume[INSTANT_VOLUME_ENTRIES];  // 4 samples per second.
   double window_samples[PEAK_WINDOW];
 
-  StaticJsonDocument<512> message;
+  StaticJsonDocument<1024> message;
 
  bool peak_detection(double current, double previous, double next ){
     // If Left side is larger or right side is larger, this is not a peak.
@@ -307,7 +308,7 @@ class spirometer{
     uint8_t capture_data(Freenove_ESP32_WS2812* indicator, int32_t* sample, char* timestamp){
       // Lock measurement in for 6 seconds, this is done by checking to see if the number of samples read in is equivalent to the SAMPLE RATE * 6.
       // This should account for 6 seconds. For some reason, using the timer method does not work very well for this. 
-      while ( this->sample_counter != (6 * SAMPLE_RATE) ) {
+      while ( this->sample_counter != (SAMPLE_RATE_6_SECONDS) ) {
         err = i2s_read(I2S_PORT, (char *)sample, sizeof(int32_t), &bytes_read, xDelay);
         this->output = (double) *sample / (double) LONG_MAX;
         this->energy += this->calc_energy(this->output);
@@ -360,6 +361,8 @@ class spirometer{
         this->bad_reading_indicator(indicator, BAD_READING);   
         return BAD_READING;
       }
+
+      
       // Send time stamp with the message.
       //this->ptr_time_stamp = (char*) get_local_time();
       //Serial.printf("%s\n\r", this->ptr_time_stamp);

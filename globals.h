@@ -34,6 +34,7 @@ const uint8_t BUTTON_THRESH = 1;
 const uint16_t DEBOUNCE_US = 250000;
 // I2S definitions
 const uint16_t SAMPLE_RATE = 44100;
+const uint32_t SAMPLE_RATE_6_SECONDS = 264601;
 TickType_t xDelay = 32;
 size_t bytes_read = 0;
 esp_err_t err;
